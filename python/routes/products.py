@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
-from models.product import ProductRequest, ProductResponse
+from models.product import ProductRequest, ProductResponse, ProductStatsResponse
 from database import products_collection
 from security.jwt_handler import get_current_user
 from bson import ObjectId
@@ -79,6 +79,31 @@ async def search_products(
     async for product in products_collection.find(mongo_filter):
         products.append(product_to_response(product))
     return products
+
+
+@router.get("/stats", response_model=ProductStatsResponse)
+async def get_product_stats():
+    total_count = 0
+    prices = []
+    category_counts: dict[str, int] = {}
+
+    async for product in products_collection.find():
+        total_count += 1
+        price = product.get("price")
+        if price is not None:
+            prices.append(price)
+        category = product.get("category") or "Uncategorized"
+        category_counts[category] = category_counts.get(category, 0) + 1
+
+    avg_price = sum(prices) / len(prices) if prices else 0.0
+
+    return ProductStatsResponse(
+        totalCount=total_count,
+        averagePrice=avg_price,
+        minPrice=min(prices) if prices else 0.0,
+        maxPrice=max(prices) if prices else 0.0,
+        categoryCount=category_counts,
+    )
 
 
 @router.get("/{product_id}")

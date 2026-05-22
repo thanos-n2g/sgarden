@@ -33,6 +33,14 @@ class ProductResponse(BaseModel):
     updatedAt: Optional[str] = None
 
 
+class ProductStatsResponse(BaseModel):
+    totalCount: int
+    averagePrice: float
+    minPrice: float
+    maxPrice: float
+    categoryCount: dict[str, int]
+
+
 class ProductInDBV2(BaseModel):
     """CODE QUALITY ISSUE: duplicate of ProductInDB."""
     id: Optional[str] = Field(None, alias="_id")
