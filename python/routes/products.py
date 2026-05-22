@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
-from models.product import ProductRequest, ProductResponse, ProductStatsResponse, ProductListResponse
+from models.product import ProductRequest, ProductCreateRequest, ProductUpdateRequest, ProductResponse, ProductStatsResponse, ProductListResponse
 from database import products_collection
 from security.jwt_handler import get_current_user
 from bson import ObjectId
@@ -133,7 +133,7 @@ async def get_product_by_id(product_id: str):
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_product(request: ProductRequest, current_user: dict = Depends(get_current_user)):
+async def create_product(request: ProductCreateRequest, current_user: dict = Depends(get_current_user)):
     product_doc = {
         "name": request.name,
         "description": request.description,
@@ -185,7 +185,7 @@ async def update_product_legacy(product_id: str, request: ProductRequest, curren
 
 
 @router.put("/{product_id}")
-async def update_product(product_id: str, request: ProductRequest, current_user: dict = Depends(get_current_user)):
+async def update_product(product_id: str, request: ProductUpdateRequest, current_user: dict = Depends(get_current_user)):
     if not ObjectId.is_valid(product_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
 
