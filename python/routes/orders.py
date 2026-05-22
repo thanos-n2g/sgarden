@@ -55,10 +55,35 @@ async def get_order(order_id: str, current_user: dict = Depends(get_current_user
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_order(request: OrderCreateRequest, current_user: dict = Depends(get_current_user)):
     items = [{"productId": item.productId, "quantity": item.quantity} for item in request.items]
-    total = await calculate_total(items)
+
+    # Validate all products exist and have sufficient stock before any modification
+    resolved = []
+    for item in items:
+        product_id = item["productId"]
+        quantity = item["quantity"]
+        if not ObjectId.is_valid(product_id):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid productId: {product_id}")
+        product = await products_collection.find_one({"_id": ObjectId(product_id)})
+        if not product:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product {product_id} not found")
+        available = product.get("stock", 0)
+        if available < quantity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Insufficient stock for product {product_id}: available {available}, requested {quantity}",
+            )
+        resolved.append((product_id, quantity, product))
+
+    total = sum((p.get("price") or 0.0) * q for _, q, p in resolved)
+
+    for product_id, quantity, _ in resolved:
+        await products_collection.update_one(
+            {"_id": ObjectId(product_id)},
+            {"$inc": {"stock": -quantity}, "$set": {"updatedAt": datetime.utcnow()}},
+        )
+
     now = datetime.utcnow()
     order_doc = {"items": items, "total": total, "createdAt": now, "updatedAt": now}
-
     result = await orders_collection.insert_one(order_doc)
     order_doc["_id"] = result.inserted_id
     return order_to_response(order_doc)
