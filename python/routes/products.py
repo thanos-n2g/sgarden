@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
-from models.product import ProductRequest, ProductCreateRequest, ProductUpdateRequest, ProductResponse, ProductStatsResponse, ProductListResponse
+from models.product import ProductRequest, ProductCreateRequest, ProductUpdateRequest, ProductResponse, ProductStatsResponse, ProductListResponse, StockUpdateRequest
 from database import products_collection
 from security.jwt_handler import get_current_user
 from bson import ObjectId
@@ -209,6 +209,23 @@ async def update_product(product_id: str, request: ProductUpdateRequest, current
     result = await products_collection.update_one(
         {"_id": ObjectId(product_id)},
         {"$set": update_fields},
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+
+    product = await products_collection.find_one({"_id": ObjectId(product_id)})
+    return product_to_response(product)
+
+
+@router.patch("/{product_id}/stock")
+async def update_product_stock(product_id: str, request: StockUpdateRequest, current_user: dict = Depends(get_current_user)):
+    if not ObjectId.is_valid(product_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+
+    result = await products_collection.update_one(
+        {"_id": ObjectId(product_id)},
+        {"$set": {"stock": request.stock, "updatedAt": datetime.utcnow()}},
     )
 
     if result.matched_count == 0:

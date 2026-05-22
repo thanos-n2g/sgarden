@@ -51,6 +51,9 @@ class _AsyncIter:
 def make_products_mock():
     mock = MagicMock()
     mock.find_one = AsyncMock(return_value=FAKE_PRODUCT)
+    update_result = MagicMock()
+    update_result.matched_count = 1
+    mock.update_one = AsyncMock(return_value=update_result)
     return mock
 
 

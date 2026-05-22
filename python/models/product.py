@@ -101,6 +101,17 @@ class ProductStatsResponse(BaseModel):
     categoryCount: dict[str, int]
 
 
+class StockUpdateRequest(BaseModel):
+    stock: int
+
+    @field_validator("stock")
+    @classmethod
+    def stock_must_not_be_negative(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("Stock cannot be negative")
+        return v
+
+
 class ProductInDBV2(BaseModel):
     """CODE QUALITY ISSUE: duplicate of ProductInDB."""
     id: Optional[str] = Field(None, alias="_id")
