@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
-from models.product import ProductRequest, ProductResponse, ProductStatsResponse
+from models.product import ProductRequest, ProductResponse, ProductStatsResponse, ProductListResponse
 from database import products_collection
 from security.jwt_handler import get_current_user
 from bson import ObjectId
@@ -41,14 +41,28 @@ def format_product(product: dict) -> dict:
     }
 
 
-@router.get("")
-async def get_all_products():
-    print("Fetching all products")
-    products = []
+@router.get("", response_model=ProductListResponse)
+async def get_all_products(
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
+    sort: Optional[str] = Query(None),
+    order: Optional[str] = Query("asc"),
+):
+    sort_direction = 1 if order != "desc" else -1
+    skip = (page - 1) * limit
+
+    total = await products_collection.count_documents({})
+
     cursor = products_collection.find()
+    if sort:
+        cursor = cursor.sort(sort, sort_direction)
+    cursor = cursor.skip(skip).limit(limit)
+
+    products = []
     async for product in cursor:
         products.append(product_to_response(product))
-    return products
+
+    return ProductListResponse(data=products, page=page, limit=limit, total=total)
 
 
 @router.get("/search")

@@ -33,6 +33,13 @@ class ProductResponse(BaseModel):
     updatedAt: Optional[str] = None
 
 
+class ProductListResponse(BaseModel):
+    data: list[dict]
+    page: int
+    limit: int
+    total: int
+
+
 class ProductStatsResponse(BaseModel):
     totalCount: int
     averagePrice: float
