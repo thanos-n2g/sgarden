@@ -1,9 +1,13 @@
-from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+"""Pydantic models for user request/response schemas."""
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserInDB(BaseModel):
+    """Internal user representation as stored in MongoDB."""
+
     id: Optional[str] = Field(None, alias="_id")
     username: str
     email: str
@@ -15,49 +19,23 @@ class UserInDB(BaseModel):
 
 
 class RegisterRequest(BaseModel):
+    """Payload for registering a new user."""
+
     username: str = Field(..., min_length=3, max_length=30)
     email: EmailStr
     password: str = Field(..., min_length=8)
 
 
 class LoginRequest(BaseModel):
+    """Payload for authenticating a user."""
+
     username: str
     password: str
 
 
 class AuthResponse(BaseModel):
-    token: str
-    username: str
-    role: str
+    """Response returned after successful register or login."""
 
-
-class UserInDBV2(BaseModel):
-    """CODE QUALITY ISSUE: duplicate of UserInDB."""
-    id: Optional[str] = Field(None, alias="_id")
-    username: str
-    email: str
-    password: str
-    role: str = "user"
-    last_active_at: datetime = Field(default_factory=datetime.utcnow)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-
-
-class RegisterRequestV2(BaseModel):
-    """CODE QUALITY ISSUE: duplicate of RegisterRequest."""
-    username: str = Field(..., min_length=3, max_length=30)
-    email: EmailStr
-    password: str = Field(..., min_length=8)
-
-
-class LoginRequestV2(BaseModel):
-    """CODE QUALITY ISSUE: duplicate of LoginRequest."""
-    username: str
-    password: str
-
-
-class AuthResponseV2(BaseModel):
-    """CODE QUALITY ISSUE: duplicate of AuthResponse."""
     token: str
     username: str
     role: str

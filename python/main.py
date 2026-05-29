@@ -1,34 +1,27 @@
+"""SGarden Inventory API — application entry point."""
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
 
 from config import settings
 from database import init_indexes
-from seed import seed_data
 from routes.auth import router as auth_router
 from routes.orders import router as orders_router
 from routes.products import router as products_router
 from routes.users import router as users_router
-
-# CODE QUALITY ISSUE: unused variable
-APP_NAME = "SGarden Inventory API"
-DEBUG_MODE = True
-unused_config = {"key": "value", "secret": "not-so-secret"}
+from seed import seed_data
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    print("Starting SGarden API...")
+async def lifespan(_app: FastAPI):
+    """Run startup/shutdown hooks around the app lifecycle."""
     await init_indexes()
     await seed_data()
-    print("SGarden API started successfully")
     yield
-    # Shutdown
-    print("Shutting down SGarden API...")
 
 
 app = FastAPI(
@@ -40,7 +33,8 @@ app = FastAPI(
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(_request: Request, exc: RequestValidationError):
+    """Return a flat dict of field → message for validation errors."""
     errors = {}
     for error in exc.errors():
         loc = error.get("loc", ())
@@ -50,16 +44,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         errors[field] = msg
     return JSONResponse(status_code=400, content={"errors": errors})
 
-# CORS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Routes
 app.include_router(auth_router)
 app.include_router(orders_router)
 app.include_router(products_router)
@@ -68,6 +61,7 @@ app.include_router(users_router)
 
 @app.get("/api/health")
 async def health():
+    """Liveness check."""
     return {"status": "ok"}
 
 
